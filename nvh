@@ -1,0 +1,158 @@
+#!/bin/sh
+#
+# Author: fedeghe <fedeghe@gmail.com>
+# Version : maltaV('PACKAGE.version$')
+
+#
+# must check and copy if do not exists
+# /etc/apache2/vhosts/conf.tpl
+# /etc/apache2/sslvhosts/conf.tpl 
+#
+
+version=maltaV('PACKAGE.version$')
+echo ""
+echo "                  888"     
+echo "888 8e  Y8b Y888P 888 ee  "
+echo "888 88b  Y8b Y8P  888 88b "
+echo "888 888   Y8b Y   888 888 "
+echo "888 888    Y8P    888 888 "
+echo "                          v $version"
+echo ""
+
+# allow only root
+#
+if [[ $EUID -ne 0 ]]; then
+   echo "This script must be run as root" 
+   exit 1
+fi
+
+
+read -p "Enter the domain name: " domain
+read -p "Enter the full folder path: " folder
+echo "if afterward You want to create a subdomain eg: xxx.$domain -> $domain/xxx"
+echo "1) add 'ServerAlias xxx.$domain' in the $domain.conf"
+echo "2) add the following rewrite rule to the created .htaccess"
+echo "	RewriteEngine on"
+echo "	RewriteCond %{HTTP_HOST} ^xxx.$domain"
+echo "	RewriteRule ^(.*)$ http://$domain/xxx/\$1 [P,L]"
+echo ""
+read -p "Choose
+- 1 for http only 
+- 2 for https only
+- 3 for both : (3 default) " mode
+
+mode=${mode:-3}
+
+http=true
+
+https=true
+
+if [[ "$mode" == 1 ]]; then
+	https=false
+fi
+if [[ "$mode" == 2 ]]; then
+	http=false
+fi
+
+if [[ "$https" == true ]]; then
+	cd /etc/apache2/ssl
+	openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout $domain.key -out $domain.crt
+	openssl req -new -key $domain.key -out $domain.csr
+	openssl x509 -req -days 365 -in $domain.csr -signkey $domain.key -out $domain.crt
+	cp $domain.key $domain.tmp
+	openssl rsa -in $domain.tmp -out $domain.key
+	rm $domain.tmp
+	cd -
+fi
+
+# create the folder if does not exists
+#
+if [[ -d $folder ]]
+then
+    echo "Directory $folder already exists"
+else
+	mkdir -p $folder/src/js
+	mkdir $folder/src/less
+	mkdir $folder/js
+	mkdir $folder/css
+	touch $folder/index.html
+	touch $folder/README.md
+	touch $folder/build.sh
+	touch $folder/.htaccess
+
+	less /etc/apache2/htaccess.tpl > $folder/.htaccess
+	
+	echo "malta buildall.json" > $folder/build.sh
+	echo "{}" > $folder/vars.json
+	touch $folder/buildall.json
+	sudo sed -e "s;%DOMAIN%;$domain;g" -e "s;%MODE%;$mode;g"  /etc/apache2/index.tpl > $folder/index.html
+	sudo chown -R federicoghedina:staff $folder
+	echo "Directory $folder created successfully"
+fi
+
+# basic permissions
+#
+find $folder -type f | xargs chmod 644
+find $folder -type d | xargs chmod 755
+
+
+if [[ -f $folder/build.sh ]]; then
+	chmod +x $folder/build.sh
+fi
+if [[ -f $folder/vars.json ]]; then
+	chmod +x $folder/vars.json
+fi
+
+sslvhostFile=/etc/apache2/sslvhosts/$domain.conf
+vhostFile=/etc/apache2/vhosts/$domain.conf
+
+
+if [[ "$https" == true ]]; then
+	echo "Doing https ... "
+	# if missing, replace in tpl and write it
+	#if [[ ! -f $sslvhostFile ]] ; then
+		sudo sed -e "s;%FOLDER%;$folder;g" -e "s;%DOMAIN%;$domain;g" -e "s;%DOMAIN_CRT%;/etc/apache2/ssl/$domain.crt;g" -e "s;%DOMAIN_KEY%;/etc/apache2/ssl/$domain.key;g" /etc/apache2/sslvhosts/conf.tpl > $sslvhostFile
+		sudo subl $sslvhostFile
+	#fi
+	echo "done"
+fi
+
+if [[ "$http" == true ]]; then
+	echo "Doing http ... "
+	#if [[ ! -f $vhostFile ]] ; then
+		sed -e "s;%FOLDER%;$folder;g" -e "s;%DOMAIN%;$domain;g" /etc/apache2/vhosts/conf.tpl > $vhostFile
+		sudo subl $vhostFile
+	#fi
+	echo "done"
+fi
+
+# in case append to /etc/hosts
+#
+inhost=$(less /etc/hosts | grep -c "127.0.0.1 www.$domain")
+
+if [ $inhost -lt 1 ]; then
+	echo 'adding line to /etc/hosts ... '
+	sudo echo "127.0.0.1 www.$domain $domain" >> /etc/hosts
+	echo "done"
+fi
+
+# configtest & restart
+echo "Testing apache config:"
+sudo apachectl -t
+echo "Apache restarts:"
+sudo apachectl restart
+sleep 5
+
+# open
+# the right ones
+# 
+echo "...opening $domain"
+if [[ "$https" == true ]]; then
+	#open https://www.$domain
+	/usr/bin/open -a "/Applications/Google Chrome.app"  "https://www.$domain"
+fi
+if [[ "$http" == true ]]; then
+	#open http://www.$domain
+	/usr/bin/open -a "/Applications/Google Chrome.app"  "http://www.$domain"
+fi
+
