@@ -10,11 +10,11 @@
 CD="$( cd "$( dirname "$0" )" && pwd )"
 mkdir -p /etc/apache2/vhosts
 mkdir -p /etc/apache2/sslvhosts
-cp -R -u -p $CD/source/vhost.conf.tpl /etc/apache2/vhosts/conf.tpl
-cp -R -u -p $CD/source/sslvhost.conf.tpl /etc/apache2/sslvhosts/conf.tpl
+cp $CD/source/vhost.conf.tpl /etc/apache2/vhosts/conf.tpl
+cp $CD/source/sslvhost.conf.tpl /etc/apache2/sslvhosts/conf.tpl
 #
 
-version=1.0.3
+version=1.0.4
 echo ""
 echo "                  888"     
 echo "888 8e  Y8b Y888P 888 ee  "

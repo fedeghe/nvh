@@ -10,8 +10,8 @@
 CD="$( cd "$( dirname "$0" )" && pwd )"
 mkdir -p /etc/apache2/vhosts
 mkdir -p /etc/apache2/sslvhosts
-cp -R -u -p $CD/source/vhost.conf.tpl /etc/apache2/vhosts/conf.tpl
-cp -R -u -p $CD/source/sslvhost.conf.tpl /etc/apache2/sslvhosts/conf.tpl
+cp $CD/source/vhost.conf.tpl /etc/apache2/vhosts/conf.tpl
+cp $CD/source/sslvhost.conf.tpl /etc/apache2/sslvhosts/conf.tpl
 #
 
 version=maltaV('PACKAGE.version')
