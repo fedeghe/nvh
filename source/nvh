@@ -11,7 +11,7 @@ mkdir -p /etc/apache2/vhosts
 mkdir -p /etc/apache2/sslvhosts
 #
 
-version=maltaV('PACKAGE.version$')
+version=maltaV('PACKAGE.version')
 echo ""
 echo "                  888"     
 echo "888 8e  Y8b Y888P 888 ee  "

@@ -2,7 +2,7 @@
     "name": "nvh",
     "version": "1.0.1",
     "bin": {
-        "nvh": "bin.js"
+        "nvh": "./nvh"
     },
     "repository": "https://github.com/fedeghe/nvh.git",
     "author": "fedeghe <fedeghe@gmail.com>",
