@@ -158,8 +158,11 @@ cat > /etc/apache2/index.tpl  << EOF
 </html>
 EOF
 
+
 read -p "Enter the domain name: " domain
 read -p "Enter the full folder path: " folder
+read -p "Enter the apache user: " user
+read -p "Enter the apache group: " group
 echo "if afterward You want to create a subdomain eg: xxx.$domain -> $domain/xxx"
 echo "1) add 'ServerAlias xxx.$domain' in the $domain.conf"
 echo "2) add the following rewrite rule to the created .htaccess"
@@ -217,7 +220,7 @@ else
 	echo "{}" > $folder/vars.json
 	touch $folder/buildall.json
 	sudo sed -e "s;%DOMAIN%;$domain;g" -e "s;%MODE%;$mode;g"  /etc/apache2/index.tpl > $folder/index.html
-	sudo chown -R maltaV('user'):maltaV('group') $folder
+	sudo chown -R $user:$group $folder
 	echo "Directory $folder created successfully"
 fi
 
