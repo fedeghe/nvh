@@ -7,6 +7,8 @@
 # must check and copy if do not exists
 # /etc/apache2/vhosts/conf.tpl
 # /etc/apache2/sslvhosts/conf.tpl 
+mkdir -p /etc/apache2/vhosts
+mkdir -p /etc/apache2/sslvhosts
 #
 
 version=maltaV('PACKAGE.version$')
@@ -103,6 +105,8 @@ if [[ -f $folder/vars.json ]]; then
 	chmod +x $folder/vars.json
 fi
 
+
+
 sslvhostFile=/etc/apache2/sslvhosts/$domain.conf
 vhostFile=/etc/apache2/vhosts/$domain.conf
 
@@ -111,7 +115,7 @@ if [[ "$https" == true ]]; then
 	echo "Doing https ... "
 	# if missing, replace in tpl and write it
 	#if [[ ! -f $sslvhostFile ]] ; then
-		sudo sed -e "s;%FOLDER%;$folder;g" -e "s;%DOMAIN%;$domain;g" -e "s;%DOMAIN_CRT%;/etc/apache2/ssl/$domain.crt;g" -e "s;%DOMAIN_KEY%;/etc/apache2/ssl/$domain.key;g" /etc/apache2/sslvhosts/conf.tpl > $sslvhostFile
+		sudo sed -e "s;%FOLDER%;$folder;g" -e "s;%DOMAIN%;$domain;g" -e "s;%DOMAIN_CRT%;/etc/apache2/ssl/$domain.crt;g" -e "s;%DOMAIN_KEY%;/etc/apache2/ssl/$domain.key;g" source/sslvhosts.conf.tpl > $sslvhostFile
 		sudo subl $sslvhostFile
 	#fi
 	echo "done"
@@ -120,7 +124,7 @@ fi
 if [[ "$http" == true ]]; then
 	echo "Doing http ... "
 	#if [[ ! -f $vhostFile ]] ; then
-		sed -e "s;%FOLDER%;$folder;g" -e "s;%DOMAIN%;$domain;g" /etc/apache2/vhosts/conf.tpl > $vhostFile
+		sed -e "s;%FOLDER%;$folder;g" -e "s;%DOMAIN%;$domain;g" source/vhosts.conf.tpl > $vhostFile
 		sudo subl $vhostFile
 	#fi
 	echo "done"
