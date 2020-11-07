@@ -205,20 +205,9 @@ if [[ -d $folder ]]
 then
     echo "Directory $folder already exists"
 else
-	mkdir -p $folder/src/js
-	mkdir $folder/src/less
-	mkdir $folder/js
-	mkdir $folder/css
-	touch $folder/index.html
-	touch $folder/README.md
-	touch $folder/build.sh
+	mkdir $folder
 	touch $folder/.htaccess
-
 	less /etc/apache2/htaccess.tpl > $folder/.htaccess
-	
-	echo "malta buildall.json" > $folder/build.sh
-	echo "{}" > $folder/vars.json
-	touch $folder/buildall.json
 	sudo sed -e "s;%DOMAIN%;$domain;g" -e "s;%MODE%;$mode;g"  /etc/apache2/index.tpl > $folder/index.html
 	sudo chown -R $user:$group $folder
 	echo "Directory $folder created successfully"
