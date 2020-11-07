@@ -7,10 +7,11 @@
 # must check and copy if do not exists
 # /etc/apache2/vhosts/conf.tpl
 # /etc/apache2/sslvhosts/conf.tpl 
+CD="$( cd "$( dirname "$0" )" && pwd )"
 mkdir -p /etc/apache2/vhosts
 mkdir -p /etc/apache2/sslvhosts
-cp -R -u -p source/vhost.conf.tpl /etc/apache2/vhosts/conf.tpl
-cp -R -u -p source/sslvhost.conf.tpl /etc/apache2/sslvhosts/conf.tpl
+cp -R -u -p $CD/source/vhost.conf.tpl /etc/apache2/vhosts/conf.tpl
+cp -R -u -p $CD/source/sslvhost.conf.tpl /etc/apache2/sslvhosts/conf.tpl
 #
 
 version=maltaV('PACKAGE.version')
@@ -22,6 +23,10 @@ echo "888 888   Y8b Y   888 888 "
 echo "888 888    Y8P    888 888 "
 echo "                          v $version"
 echo ""
+
+
+
+
 
 # allow only root
 #
