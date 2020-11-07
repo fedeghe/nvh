@@ -2,19 +2,9 @@
 #
 # Author: fedeghe <fedeghe@gmail.com>
 # Version : maltaV('PACKAGE.version$')
-
-#
-# must check and copy if do not exists
-# /etc/apache2/vhosts/conf.tpl
-# /etc/apache2/sslvhosts/conf.tpl 
-CD="$( cd "$( dirname "$0" )" && pwd )"
-mkdir -p /etc/apache2/vhosts
-mkdir -p /etc/apache2/sslvhosts
-cp $CD/source/vhost.conf.tpl /etc/apache2/vhosts/conf.tpl
-cp $CD/source/sslvhost.conf.tpl /etc/apache2/sslvhosts/conf.tpl
 #
 
-version=1.0.4
+version=1.0.5
 echo ""
 echo "                  888"     
 echo "888 8e  Y8b Y888P 888 ee  "
@@ -35,6 +25,138 @@ if [[ $EUID -ne 0 ]]; then
    exit 1
 fi
 
+
+mkdir -p /etc/apache2/vhosts
+mkdir -p /etc/apache2/sslvhosts
+
+
+cat > /etc/apache2/vhosts/conf.tpl << EOF
+<VirtualHost *:80>
+    ServerAdmin fedeghe@gmail.com
+    DocumentRoot "%FOLDER%"
+    ServerName %DOMAIN%
+    ServerAlias www.%DOMAIN%
+    Header set Access-Control-Allow-Origin "*"
+    ErrorLog "/private/var/log/apache2/%DOMAIN%-error_log"
+    CustomLog "/private/var/log/apache2/%DOMAIN%-access_log" common
+    <Directory "%FOLDER%">
+        Options Indexes FollowSymLinks
+        AllowOverride All
+        Require all granted
+    </Directory>
+</VirtualHost>
+EOF
+
+cat > /etc/apache2/sslvhosts/conf.tpl << EOF
+<VirtualHost *:443>
+    ServerAdmin fedeghe@gmail.com
+    DocumentRoot "%FOLDER%"
+    ServerName %DOMAIN%
+    ServerAlias www.%DOMAIN%
+    Header set Access-Control-Allow-Origin "*"
+    ErrorLog "/private/var/log/apache2/%DOMAIN%-error_log"
+    CustomLog "/private/var/log/apache2/%DOMAIN%-access_log" common
+    <Directory "%FOLDER%">
+        AllowOverride All
+        Require all granted
+    </Directory>
+    SSLEngine on
+    SSLCertificateFile "%DOMAIN_CRT%"
+    SSLCertificateKeyFile "%DOMAIN_KEY%"
+</VirtualHost>
+EOF
+
+cat > /etc/apache2/htaccess.tpl << EOF
+# pass the default character set
+AddDefaultCharset utf-8
+
+# disable the server signature
+ServerSignature Off
+
+<ifModule mod_env.c>
+	# set the server timezone
+	SetEnv TZ Europe/Rome
+</ifModule>
+# disable folder listing
+Options -Indexes
+
+<ifmodule mod_deflate.c>
+   AddOutputFilterByType DEFLATE text/text text/html text/plain text/xml text/css text/javascript application/x-javascript application/javascript application/json application/xml
+</ifmodule>
+
+FileETag MTime Size
+<ifmodule mod_expires.c>
+  <filesmatch "\.(html|htm|js|css|jpeg|jpg|gif|png|ico)$">
+       ExpiresActive on
+       ExpiresDefault "access plus 1 year"
+   </filesmatch>
+</ifmodule>
+	
+<ifModule mod_headers.c>
+	Header set Access-Control-Allow-Origin "*"
+
+	# 0
+	<FilesMatch "jmvc(\.min)?\.js$">
+		Header unset Cache-Control
+	</FilesMatch>
+
+	# year
+	<FilesMatch "\.(ico|pdf|flv|jpg|jpeg|png|gif|svg|swf|mp3|mp4)$">
+		Header set Cache-Control "max-age=31104000, must-revalidate"
+		Header unset Last-Modified
+	</FilesMatch>
+	
+	#1 month
+	<FilesMatch "\.(js|css|json)$">
+		Header append Vary: Accept-Encoding
+		Header set Cache-Control "max-age=2592000, must-revalidate"
+	</FilesMatch>
+	
+	#2 hours
+	<FilesMatch "\.(html|htm|xml|txt|xsl|xml)$">
+		Header set Cache-Control "max-age=7200, must-revalidate"
+	</FilesMatch>
+</ifModule>    
+
+<IfModule mod_rewrite.c>
+</IfModule>
+EOF
+
+cat > /etc/apache2/index.tpl  << EOF
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<title>%DOMAIN% works!</title>
+	<script>
+		window.onload = function () {
+			var http = document.getElementById('http'),
+				https = document.getElementById('https'),
+				mode = %MODE%;
+			switch (mode) {
+				case 1 :
+					http.style.display = 'block';
+					break;
+				case 2 : 
+					https.style.display = 'block';
+					break;
+				case 3 : 
+					http.style.display = 'block';
+					https.style.display = 'block';
+					break;
+			}
+		}
+	</script>
+</head>
+<body>
+	<ul>
+		<li><a id="http" style="display:none" href="http://%DOMAIN%">http://%DOMAIN%</a> works!</li>
+		<li><a id="https" style="display:none" href="https://%DOMAIN%">https://%DOMAIN%</a> works!</li>
+	</ul>
+</body>
+</html>
+EOF
 
 read -p "Enter the domain name: " domain
 read -p "Enter the full folder path: " folder
