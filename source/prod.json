@@ -1,3 +1,0 @@
-{
-    "#source/nvh": ". -options=placeholderMode:\"func\" -options=showPath:false -vars=source/vars.json"
-}
