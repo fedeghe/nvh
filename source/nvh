@@ -112,7 +112,6 @@ then
 else
 	mkdir $folder
 	touch $folder/.htaccess
-	touch $folder/remove_instructions.txt
     echo "if [[ $EUID -ne 0 ]]; then" >> $folder/remove.sh
     echo "   echo \"This script must be run as root\" " >> $folder/remove.sh
     echo "   exit 1" >> $folder/remove.sh
@@ -125,7 +124,7 @@ else
     echo "rm -rf $folder" >> $folder/remove.sh
     
 	less /etc/apache2/htaccess.tpl > $folder/.htaccess
-	sudo sed -e "s;%DOMAIN%;$domain;g" -e "s;%MODE%;$mode;g" -e "s;%ADMIN_EMAIL%;$adminEmail;g"  /etc/apache2/index.tpl > $folder/index.html
+	sudo sed -e "s;%DOMAIN%;$domain;g" -e "s;%MODE%;$mode;g" -e "s;%ADMINEMAIL%;$adminEmail;g"  /etc/apache2/index.tpl > $folder/index.html
 	sudo chown -R $user:$group $folder
 	echo "Directory $folder created successfully"
 fi
@@ -151,7 +150,7 @@ if [[ "$https" == true ]]; then
 	echo "Creating https VirtualHost file ... "
 	# if missing, replace in tpl and write it
 	# if [[ ! -f $sslvhostFile ]] ; then
-		sudo sed -e "s;%FOLDER%;$folder;g" -e "s;%DOMAIN%;$domain;g" -e "s;%ADMIN_EMAIL%;$adminEmail;g" -e "s;%DOMAIN_CRT%;/usr/local/etc/openssl/$domain.crt;g" -e "s;%DOMAIN_KEY%;/usr/local/etc/openssl/$domain.key;g" /etc/apache2/sslvhosts/conf.tpl > $sslvhostFile
+		sudo sed -e "s;%FOLDER%;$folder;g" -e "s;%DOMAIN%;$domain;g" -e "s;%ADMINEMAIL%;$adminEmail;g" -e "s;%DOMAIN_CRT%;/usr/local/etc/openssl/$domain.crt;g" -e "s;%DOMAIN_KEY%;/usr/local/etc/openssl/$domain.key;g" /etc/apache2/sslvhosts/conf.tpl > $sslvhostFile
 		sudo subl $sslvhostFile
 	#fi
 	echo "done"

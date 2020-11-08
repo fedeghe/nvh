@@ -1,5 +1,5 @@
 <VirtualHost *:80>
-    ServerAdmin %ADMIN_EMAIL%
+    ServerAdmin %ADMINEMAIL%
     DocumentRoot "%FOLDER%"
     ServerName %DOMAIN%
     ServerAlias www.%DOMAIN%
