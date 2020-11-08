@@ -16,11 +16,16 @@ Since `nvh` has to create some files inside `/etc/apache2/` and modify also `/et
 
 ---
 
-After global installation through  
+### Hint
+On Chrome and Vivaldi still the ssl self-created certificates are not trusted, since we are not adding ourself as a trusted certificate authority. This means that on those browser ssl virtual host will not be accessible.
+
+---
+
+### Install globally  
 ```
 > yarn global add nvh 
 ```
-`nvh` executable is available anywhere; run
+now `nvh` executable is available anywhere; run
 
 ```
 > sudo nvh
