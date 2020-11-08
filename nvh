@@ -4,7 +4,7 @@
 # Version : maltaV('PACKAGE.version$')
 #
 
-version=1.1.9
+version=1.1.12
 echo ""
 echo "                  888"     
 echo "888 8e  Y8b Y888P 888 ee  "
@@ -242,7 +242,7 @@ else
     echo "rm -rf $folder" >> $folder/remove.sh
     
 	less /etc/apache2/htaccess.tpl > $folder/.htaccess
-	sudo sed -e "s;%DOMAIN%;$domain;g" -e "s;%MODE%;$mode;g" -e "s;%ADMINEMAIL%;$adminEmail;g"  /etc/apache2/index.tpl > $folder/index.html
+	sudo sed -e "s;%DOMAIN%;$domain;g" -e "s;%MODE%;$mode;g"  /etc/apache2/index.tpl > $folder/index.html
 	sudo chown -R $user:$group $folder
 	echo "Directory $folder created successfully"
 fi
@@ -277,7 +277,7 @@ fi
 if [[ "$http" == true ]]; then
 	echo "Creating http VirtualHost file... "
 	#if [[ ! -f $vhostFile ]] ; then
-		sed -e "s;%FOLDER%;$folder;g" -e "s;%DOMAIN%;$domain;g" /etc/apache2/vhosts/conf.tpl > $vhostFile
+		sed -e "s;%FOLDER%;$folder;g" -e "s;%DOMAIN%;$domain;g" -e "s;%ADMINEMAIL%;$adminEmail;g" /etc/apache2/vhosts/conf.tpl > $vhostFile
 		sudo subl $vhostFile
 	#fi
 	echo "done"
