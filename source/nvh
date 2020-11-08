@@ -117,7 +117,7 @@ else
     echo "   exit 1" >> $folder/remove.sh
     echo "fi" >> $folder/remove.sh
 
-    echo "read -p \"This will also delete permannetly the following folder $folder (CTRL+C to quit, Enter to proceed)  \" x" >> $folder/remove.sh
+    echo "read -p \"This will also delete permanently the following folder $folder (CTRL+C to quit, Enter to proceed)  \" x" >> $folder/remove.sh
     echo "rm /etc/apache2/ssl/$domain.*" >> $folder/remove.sh
     echo "rm /etc/apache2/vhosts/$domain.*" >> $folder/remove.sh
     echo "rm /etc/apache2/sslvhosts/$domain.*" >> $folder/remove.sh
@@ -150,7 +150,7 @@ if [[ "$https" == true ]]; then
 	echo "Creating https VirtualHost file ... "
 	# if missing, replace in tpl and write it
 	# if [[ ! -f $sslvhostFile ]] ; then
-		sudo sed -e "s;%FOLDER%;$folder;g" -e "s;%DOMAIN%;$domain;g" -e "s;%ADMINEMAIL%;$adminEmail;g" -e "s;%DOMAIN_CRT%;/etl/apache2/ssl/$domain.crt;g" -e "s;%DOMAIN_KEY%;/etl/apache2/ssl/$domain.key;g" /etc/apache2/sslvhosts/conf.tpl > $sslvhostFile
+		sudo sed -e "s;%FOLDER%;$folder;g" -e "s;%DOMAIN%;$domain;g" -e "s;%ADMINEMAIL%;$adminEmail;g" -e "s;%DOMAIN_CRT%;/etc/apache2/ssl/$domain.crt;g" -e "s;%DOMAIN_KEY%;/etc/apache2/ssl/$domain.key;g" /etc/apache2/sslvhosts/conf.tpl > $sslvhostFile
 		sudo subl $sslvhostFile
 	#fi
 	echo "done"
