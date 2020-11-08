@@ -4,7 +4,7 @@
 # Version : maltaV('PACKAGE.version$')
 #
 
-version=1.1.2
+version=1.1.3
 echo ""
 echo "                  888"     
 echo "888 8e  Y8b Y888P 888 ee  "
@@ -14,25 +14,36 @@ echo "888 888    Y8P    888 888 "
 echo "                          v $version"
 echo ""
 
-
-
-
-
-# allow only root
+# stop if not root
 #
 if [[ $EUID -ne 0 ]]; then
    echo "This script must be run as root" 
    exit 1
 fi
 
-
+# in case do not exists, create those two folders
+# which will contain all `VirtualHost` tags
+# 
+#
 mkdir -p /etc/apache2/vhosts
 mkdir -p /etc/apache2/sslvhosts
 
+# be sure that the two above containing folders are included in the httpd.conf
+# 
+inhttpdconf=$(less /etc/apache2/httpd.conf | grep -c "Include /etc/apache2/vhosts/*.conf")
+if [ $inhttpdconf -lt 1 ]; then
+	echo 'adding some lines to /etc/apache2/httpd.conf ... '
+	sudo echo "Include /etc/apache2/vhosts/*.conf" >> /etc/apache2/httpd.conf
+	sudo echo "Include /etc/apache2/sslvhosts/*.conf" >> /etc/apache2/httpd.conf
+	echo "done"
+fi
 
+# tempaltes definition
+#
+# vhost VirtualHost directive
 cat > /etc/apache2/vhosts/conf.tpl << EOF
 <VirtualHost *:80>
-    ServerAdmin fedeghe@gmail.com
+    ServerAdmin %ADMIN_EMAIL%
     DocumentRoot "%FOLDER%"
     ServerName %DOMAIN%
     ServerAlias www.%DOMAIN%
@@ -46,10 +57,10 @@ cat > /etc/apache2/vhosts/conf.tpl << EOF
     </Directory>
 </VirtualHost>
 EOF
-
+# sslvhost VirtualHost directive
 cat > /etc/apache2/sslvhosts/conf.tpl << EOF
 <VirtualHost *:443>
-    ServerAdmin fedeghe@gmail.com
+    ServerAdmin %ADMIN_EMAIL%
     DocumentRoot "%FOLDER%"
     ServerName %DOMAIN%
     ServerAlias www.%DOMAIN%
@@ -65,7 +76,8 @@ cat > /etc/apache2/sslvhosts/conf.tpl << EOF
     SSLCertificateKeyFile "%DOMAIN_KEY%"
 </VirtualHost>
 EOF
-
+# basic default htaccess file in the virtual host root folder
+# (created only if the forlder does not exists yet)
 cat > /etc/apache2/htaccess.tpl << EOF
 # pass the default character set
 AddDefaultCharset utf-8
@@ -121,7 +133,8 @@ FileETag MTime Size
 <IfModule mod_rewrite.c>
 </IfModule>
 EOF
-
+# basic default index.html file in the virtual host root folder
+# (created only if the forlder does not exists yet)
 cat > /etc/apache2/index.tpl  << EOF
 <!--
 [Malta] tpls/index.tpl.html
@@ -164,11 +177,12 @@ cat > /etc/apache2/index.tpl  << EOF
 </html>
 EOF
 
-
 read -p "Enter the domain name: " domain
 read -p "Enter the full folder path: " folder
 read -p "Enter the apache user: " user
 read -p "Enter the apache group: " group
+read -p "Enter admin email: " adminEmail
+
 echo "if afterward You want to create a subdomain eg: xxx.$domain -> $domain/xxx"
 echo "1) add 'ServerAlias xxx.$domain' in the $domain.conf"
 echo "2) add the following rewrite rule to the created .htaccess"
@@ -194,16 +208,23 @@ if [[ "$mode" == 2 ]]; then
 	http=false
 fi
 
+# if [[ "$https" == true ]]; then
+# 	cd /etc/apache2/ssl
+# 	openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout $domain.key -out $domain.crt
+# 	openssl req -new -key $domain.key -out $domain.csr
+# 	openssl x509 -req -days 365 -in $domain.csr -signkey $domain.key -out $domain.crt
+# 	cp $domain.key $domain.tmp
+# 	openssl rsa -in $domain.tmp -out $domain.key
+# 	rm $domain.tmp
+# 	cd -
+# fi
 if [[ "$https" == true ]]; then
-	cd /etc/apache2/ssl
+	cd /usr/local/etc/openssl
 	openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout $domain.key -out $domain.crt
-	openssl req -new -key $domain.key -out $domain.csr
-	openssl x509 -req -days 365 -in $domain.csr -signkey $domain.key -out $domain.crt
-	cp $domain.key $domain.tmp
-	openssl rsa -in $domain.tmp -out $domain.key
-	rm $domain.tmp
 	cd -
 fi
+
+
 
 # create the folder if does not exists
 #
@@ -213,8 +234,20 @@ then
 else
 	mkdir $folder
 	touch $folder/.htaccess
+	touch $folder/remove_instructions.txt
+    echo "if [[ $EUID -ne 0 ]]; then" >> $folder/remove.sh
+    echo "   echo \"This script must be run as root\" " >> $folder/remove.sh
+    echo "   exit 1" >> $folder/remove.sh
+    echo "fi" >> $folder/remove.sh
+
+    echo "read -p \"This will also delete permannetly the following folder $folder (CTRL+C to quit, Enter to proceed)  \" x" >> $folder/remove.sh
+    echo "rm /etc/apache2/ssl/$domain.*" >> $folder/remove.sh
+    echo "rm /etc/apache2/vhosts/$domain.*" >> $folder/remove.sh
+    echo "rm /etc/apache2/sslvhosts/$domain.*" >> $folder/remove.sh
+    echo "rm -rf $folder" >> $folder/remove.sh
+    
 	less /etc/apache2/htaccess.tpl > $folder/.htaccess
-	sudo sed -e "s;%DOMAIN%;$domain;g" -e "s;%MODE%;$mode;g"  /etc/apache2/index.tpl > $folder/index.html
+	sudo sed -e "s;%DOMAIN%;$domain;g" -e "s;%MODE%;$mode;g" -e "s;%ADMIN_EMAIL%;$adminEmail;g"  /etc/apache2/index.tpl > $folder/index.html
 	sudo chown -R $user:$group $folder
 	echo "Directory $folder created successfully"
 fi
@@ -232,24 +265,22 @@ if [[ -f $folder/vars.json ]]; then
 	chmod +x $folder/vars.json
 fi
 
-
-
 sslvhostFile=/etc/apache2/sslvhosts/$domain.conf
 vhostFile=/etc/apache2/vhosts/$domain.conf
 
 
 if [[ "$https" == true ]]; then
-	echo "Doing https ... "
+	echo "Creating https VirtualHost file ... "
 	# if missing, replace in tpl and write it
 	#if [[ ! -f $sslvhostFile ]] ; then
-		sudo sed -e "s;%FOLDER%;$folder;g" -e "s;%DOMAIN%;$domain;g" -e "s;%DOMAIN_CRT%;/etc/apache2/ssl/$domain.crt;g" -e "s;%DOMAIN_KEY%;/etc/apache2/ssl/$domain.key;g" /etc/apache2/sslvhosts/conf.tpl > $sslvhostFile
+		sudo sed -e "s;%FOLDER%;$folder;g" -e "s;%DOMAIN%;$domain;g" -e "s;%ADMIN_EMAIL%;$adminEmail;g" -e "s;%DOMAIN_CRT%;/usr/local/etc/openssl/$domain.crt;g" -e "s;%DOMAIN_KEY%;/usr/local/etc/openssl/$domain.key;g" /etc/apache2/sslvhosts/conf.tpl > $sslvhostFile
 		sudo subl $sslvhostFile
 	#fi
 	echo "done"
 fi
 
 if [[ "$http" == true ]]; then
-	echo "Doing http ... "
+	echo "Creating http VirtualHost file... "
 	#if [[ ! -f $vhostFile ]] ; then
 		sed -e "s;%FOLDER%;$folder;g" -e "s;%DOMAIN%;$domain;g" /etc/apache2/vhosts/conf.tpl > $vhostFile
 		sudo subl $vhostFile
@@ -257,10 +288,9 @@ if [[ "$http" == true ]]; then
 	echo "done"
 fi
 
-# in case append to /etc/hosts
+# in case the needed entry is not found on /etc/hosts 
 #
 inhost=$(less /etc/hosts | grep -c "127.0.0.1 www.$domain")
-
 if [ $inhost -lt 1 ]; then
 	echo 'adding line to /etc/hosts ... '
 	sudo echo "127.0.0.1 www.$domain $domain" >> /etc/hosts
@@ -268,6 +298,7 @@ if [ $inhost -lt 1 ]; then
 fi
 
 # configtest & restart
+#
 echo "Testing apache config:"
 sudo apachectl -t
 echo "Apache restarts:"
@@ -275,15 +306,11 @@ sudo apachectl restart
 sleep 5
 
 # open
-# the right ones
 # 
 echo "...opening $domain"
 if [[ "$https" == true ]]; then
-	#open https://www.$domain
 	/usr/bin/open -a "/Applications/Google Chrome.app"  "https://www.$domain"
 fi
 if [[ "$http" == true ]]; then
-	#open http://www.$domain
 	/usr/bin/open -a "/Applications/Google Chrome.app"  "http://www.$domain"
 fi
-
