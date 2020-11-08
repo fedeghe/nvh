@@ -150,7 +150,7 @@ if [[ "$https" == true ]]; then
 	echo "Creating https VirtualHost file ... "
 	# if missing, replace in tpl and write it
 	# if [[ ! -f $sslvhostFile ]] ; then
-		sudo sed -e "s;%FOLDER%;$folder;g" -e "s;%DOMAIN%;$domain;g" -e "s;%ADMINEMAIL%;$adminEmail;g" -e "s;%DOMAIN_CRT%;/usr/local/etc/openssl/$domain.crt;g" -e "s;%DOMAIN_KEY%;/usr/local/etc/openssl/$domain.key;g" /etc/apache2/sslvhosts/conf.tpl > $sslvhostFile
+		sudo sed -e "s;%FOLDER%;$folder;g" -e "s;%DOMAIN%;$domain;g" -e "s;%ADMINEMAIL%;$adminEmail;g" -e "s;%DOMAIN_CRT%;/etl/apache2/ssl/$domain.crt;g" -e "s;%DOMAIN_KEY%;/etl/apache2/ssl/$domain.key;g" /etc/apache2/sslvhosts/conf.tpl > $sslvhostFile
 		sudo subl $sslvhostFile
 	#fi
 	echo "done"
