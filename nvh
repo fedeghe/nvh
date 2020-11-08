@@ -4,7 +4,7 @@
 # Version : maltaV('PACKAGE.version$')
 #
 
-version=1.0.6
+version=1.1.2
 echo ""
 echo "                  888"     
 echo "888 8e  Y8b Y888P 888 ee  "
@@ -123,38 +123,44 @@ FileETag MTime Size
 EOF
 
 cat > /etc/apache2/index.tpl  << EOF
+<!--
+[Malta] tpls/index.tpl.html
+-->
 <!DOCTYPE html>
 <html>
+
 <head>
-	<meta charset="utf-8">
-	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-	<title>%DOMAIN% works!</title>
-	<script>
-		window.onload = function () {
-			var http = document.getElementById('http'),
-				https = document.getElementById('https'),
-				mode = %MODE%;
-			switch (mode) {
-				case 1 :
-					http.style.display = 'block';
-					break;
-				case 2 : 
-					https.style.display = 'block';
-					break;
-				case 3 : 
-					http.style.display = 'block';
-					https.style.display = 'block';
-					break;
-			}
-		}
-	</script>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>%DOMAIN% works!</title>
+    <script>
+        window.onload = function () {
+            var http = document.getElementById('http'),
+                https = document.getElementById('https'),
+                mode = % MODE %;
+            switch (mode) {
+                case 1:
+                    http.style.display = 'block';
+                    break;
+                case 2:
+                    https.style.display = 'block';
+                    break;
+                case 3:
+                    http.style.display = 'block';
+                    https.style.display = 'block';
+                    break;
+            }
+        }
+    </script>
 </head>
+
 <body>
-	<ul>
-		<li><a id="http" style="display:none" href="http://%DOMAIN%">http://%DOMAIN%</a> works!</li>
-		<li><a id="https" style="display:none" href="https://%DOMAIN%">https://%DOMAIN%</a> works!</li>
-	</ul>
+    <ul>
+        <li><a id="http" style="display:none" href="http://%DOMAIN%">http://%DOMAIN%</a> works!</li>
+        <li><a id="https" style="display:none" href="https://%DOMAIN%">https://%DOMAIN%</a> works!</li>
+    </ul>
 </body>
+
 </html>
 EOF
 
@@ -205,20 +211,9 @@ if [[ -d $folder ]]
 then
     echo "Directory $folder already exists"
 else
-	mkdir -p $folder/src/js
-	mkdir $folder/src/less
-	mkdir $folder/js
-	mkdir $folder/css
-	touch $folder/index.html
-	touch $folder/README.md
-	touch $folder/build.sh
+	mkdir $folder
 	touch $folder/.htaccess
-
 	less /etc/apache2/htaccess.tpl > $folder/.htaccess
-	
-	echo "malta buildall.json" > $folder/build.sh
-	echo "{}" > $folder/vars.json
-	touch $folder/buildall.json
 	sudo sed -e "s;%DOMAIN%;$domain;g" -e "s;%MODE%;$mode;g"  /etc/apache2/index.tpl > $folder/index.html
 	sudo chown -R $user:$group $folder
 	echo "Directory $folder created successfully"

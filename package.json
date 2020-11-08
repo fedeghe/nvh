@@ -7,10 +7,10 @@
     "repository": "https://github.com/fedeghe/nvh.git",
     "author": "fedeghe <fedeghe@gmail.com>",
     "license": "MIT",
-    "dependencies": {
-        "malta": "^4.1.27"
-    },
     "scripts": {
         "build": "malta source/build.json"
+    },
+    "devDependencies": {
+        "malta": "^4.1.27"
     }
 }

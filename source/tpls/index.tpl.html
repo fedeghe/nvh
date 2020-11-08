@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>%DOMAIN% works!</title>
+    <script>
+        window.onload = function () {
+            var http = document.getElementById('http'),
+                https = document.getElementById('https'),
+                mode = % MODE %;
+            switch (mode) {
+                case 1:
+                    http.style.display = 'block';
+                    break;
+                case 2:
+                    https.style.display = 'block';
+                    break;
+                case 3:
+                    http.style.display = 'block';
+                    https.style.display = 'block';
+                    break;
+            }
+        }
+    </script>
+</head>
+
+<body>
+    <ul>
+        <li><a id="http" style="display:none" href="http://%DOMAIN%">http://%DOMAIN%</a> works!</li>
+        <li><a id="https" style="display:none" href="https://%DOMAIN%">https://%DOMAIN%</a> works!</li>
+    </ul>
+</body>
+
+</html>
