@@ -90,21 +90,17 @@ if [[ "$mode" == 2 ]]; then
 	http=false
 fi
 
-# if [[ "$https" == true ]]; then
-# 	cd /etc/apache2/ssl
-# 	openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout $domain.key -out $domain.crt
-# 	openssl req -new -key $domain.key -out $domain.csr
-# 	openssl x509 -req -days 365 -in $domain.csr -signkey $domain.key -out $domain.crt
-# 	cp $domain.key $domain.tmp
-# 	openssl rsa -in $domain.tmp -out $domain.key
-# 	rm $domain.tmp
-# 	cd -
-# fi
 if [[ "$https" == true ]]; then
-	cd /usr/local/etc/openssl
+	cd /etc/apache2/ssl
 	openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout $domain.key -out $domain.crt
+	openssl req -new -key $domain.key -out $domain.csr
+	openssl x509 -req -days 365 -in $domain.csr -signkey $domain.key -out $domain.crt
+	cp $domain.key $domain.tmp
+	openssl rsa -in $domain.tmp -out $domain.key
+	rm $domain.tmp
 	cd -
 fi
+
 
 
 
@@ -154,7 +150,7 @@ vhostFile=/etc/apache2/vhosts/$domain.conf
 if [[ "$https" == true ]]; then
 	echo "Creating https VirtualHost file ... "
 	# if missing, replace in tpl and write it
-	#if [[ ! -f $sslvhostFile ]] ; then
+	# if [[ ! -f $sslvhostFile ]] ; then
 		sudo sed -e "s;%FOLDER%;$folder;g" -e "s;%DOMAIN%;$domain;g" -e "s;%ADMIN_EMAIL%;$adminEmail;g" -e "s;%DOMAIN_CRT%;/usr/local/etc/openssl/$domain.crt;g" -e "s;%DOMAIN_KEY%;/usr/local/etc/openssl/$domain.key;g" /etc/apache2/sslvhosts/conf.tpl > $sslvhostFile
 		sudo subl $sslvhostFile
 	#fi
