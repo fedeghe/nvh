@@ -30,7 +30,7 @@ mkdir -p /etc/apache2/sslvhosts
 
 # be sure that the two above containing folders are included in the httpd.conf
 # 
-inhttpdconf=$(less /etc/apache2/httpd.conf | grep -c "Include /etc/apache2/vhosts/*.conf")
+inhttpdconf=$(less /etc/apache2/httpd.conf | grep -c "sslvhosts")
 if [ $inhttpdconf -lt 1 ]; then
 	echo 'adding some lines to /etc/apache2/httpd.conf ... '
 	sudo echo "Include /etc/apache2/vhosts/*.conf" >> /etc/apache2/httpd.conf
