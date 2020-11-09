@@ -1,6 +1,6 @@
 {
     "name": "nvh",
-    "version": "1.1.21",
+    "version": "1.1.22",
     "bin": {
         "nvh": "./nvh"
     },
@@ -12,5 +12,11 @@
     },
     "devDependencies": {
         "malta": "^4.1.27"
-    }
+    },
+    "keywords": [
+        "virtual host",
+        "virtual hosts",
+        "easy virtual host",
+        "quick virtual host"
+    ]
 }
