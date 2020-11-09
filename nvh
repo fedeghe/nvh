@@ -4,7 +4,7 @@
 # Version : maltaV('PACKAGE.version$')
 #
 
-version=1.1.23
+version=1.1.24
 
 
 echo ""
@@ -293,7 +293,6 @@ else
     echo "directory $FOLDER and content created successfully"
 fi
 
-
 echo "if afterward You want to create a subdomain eg: xxx.$DOMAIN -> $DOMAIN/xxx"
 echo "1) add 'ServerAlias xxx.$DOMAIN' in the $DOMAIN.conf"
 echo "2) add the following rewrite rule to the created .htaccess"
@@ -302,11 +301,7 @@ echo "	RewriteCond %{HTTP_HOST} ^xxx.$DOMAIN"
 echo "	RewriteRule ^(.*)$ http://$DOMAIN/xxx/\$1 [P,L]"
 echo ""
 
-
-## start
-
-
-
+## ssl  ?
 if [[ "$HTTPS" == true ]]; then
 	cd /etc/apache2/ssl
 	openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout $DOMAIN.key -out $DOMAIN.crt
@@ -318,13 +313,8 @@ if [[ "$HTTPS" == true ]]; then
 	cd -
 fi
 
-
-
-
-
 sslvhostFile=/etc/apache2/sslvhosts/$DOMAIN.conf
 vhostFile=/etc/apache2/vhosts/$DOMAIN.conf
-
 
 if [[ "$HTTPS" == true ]]; then
 	echo "Creating https VirtualHost file ... "
