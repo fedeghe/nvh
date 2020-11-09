@@ -5,6 +5,8 @@
 #
 
 version=maltaV('PACKAGE.version')
+
+
 echo ""
 echo "                  888"     
 echo "888 8e  Y8b Y888P 888 ee  "
@@ -14,12 +16,48 @@ echo "888 888    Y8P    888 888 "
 echo "                          v $version"
 echo ""
 
+
+
+
 # stop if not root
 #
 if [[ $EUID -ne 0 ]]; then
    echo "This script must be run as root" 
    exit 1
 fi
+
+# define some vars
+#
+CURRENTFOLDER=$(pwd)
+HTTP=true
+HTTPS=true
+MODE=1
+HTTPD=/etc/apache2/httpd.conf
+HASAPACHEINCLUDE=$(less /etc/apache2/httpd.conf | grep -c "Include\s/etc/apache2/vhosts\/\*\.conf")
+HASOPENSSL=$(which openssl | grep -c "/")
+TYPELABEL="Choose
+- 1 for http only 
+- 2 for https only
+- 3 for both (1 default): "
+
+
+echo "Checking dependencies"
+
+if [ -f "$HTTPD" ]; then
+    echo "- apache found"
+else 
+    echo "- apache seem to be missing, install it and try again"
+    exit 1
+fi
+
+
+if [ $HASOPENSSL -lt 1 ]; then
+    echo "- openssl seem to be missing, you will nto be able to create ssl VirtualHost"
+fi
+
+
+
+
 
 # in case do not exists, create those two folders
 # which will contain all `VirtualHost` tags
@@ -28,15 +66,18 @@ fi
 mkdir -p /etc/apache2/vhosts
 mkdir -p /etc/apache2/sslvhosts
 
+
 # be sure that the two above containing folders are included in the httpd.conf
-# 
-inhttpdconf=$(less /etc/apache2/httpd.conf | grep -c "sslvhosts")
-if [ $inhttpdconf -lt 1 ]; then
-	echo 'adding some lines to /etc/apache2/httpd.conf ... '
-	sudo echo "Include /etc/apache2/vhosts/*.conf" >> /etc/apache2/httpd.conf
-	sudo echo "Include /etc/apache2/sslvhosts/*.conf" >> /etc/apache2/httpd.conf
-	echo "done"
+# will be used as containers for the incoming VirtualHost directives file containers that nvh will create 
+# now and in all following viratul host
+
+if [ $HASAPACHEINCLUDE -lt 1 ]; then
+    echo 'Adding Include for vhosts and sslvhosts to /etc/apache2/httpd.conf ... '
+    sudo echo "Include /etc/apache2/vhosts/*.conf" >> /etc/apache2/httpd.conf
+    sudo echo "Include /etc/apache2/sslvhosts/*.conf" >> /etc/apache2/httpd.conf
+    echo "done"
 fi
+
 
 # tempaltes definition
 #
@@ -58,117 +99,127 @@ EOF
 cat > /etc/apache2/index.tpl  << EOF
 maltaF('tpls/index.tpl.html')
 EOF
+# end of templates
 
-read -p "Enter the domain name: " domain
-read -p "Enter the full folder path: " folder
-read -p "Enter the apache user: " user
-read -p "Enter the apache group: " group
-read -p "Enter admin email: " adminEmail
 
-echo "if afterward You want to create a subdomain eg: xxx.$domain -> $domain/xxx"
-echo "1) add 'ServerAlias xxx.$domain' in the $domain.conf"
+##
+# Ask the user some informations
+
+if [ $HASOPENSSL -gt 0 ]; then
+    read -p "$TYPELABEL" mode
+    MODE=${mode:-1}
+fi
+
+# enter the name of the desired virtual host domain
+read -p "Enter the domain name: " DOMAIN
+
+# enter the full path to the rootFolder that contains/will contain 
+# the virtual host files (e.g. /Users/yourname/htdocs/mywebsite)
+read -p "Enter the full folder path ($CURRENTFOLDER): " folderinput
+FOLDER=${folderinput:-$CURRENTFOLDER}
+
+
+if [[ "$MODE" == 1 ]]; then
+	HTTPS=false
+fi
+if [[ "$MODE" == 2 ]]; then
+	HTTP=false
+fi
+
+if [[ -d $FOLDER ]]; then
+    echo "Directory $FOLDER already exists"
+
+    # basic permissions on al file an folders under the rootFolder
+    find $FOLDER -type f | xargs chmod 644
+    find $FOLDER -type d | xargs chmod 755
+
+else
+    # if the rootFolder does not exists, I need to know the `user` and `group` 
+    # so to be able to set the ownership of the folder and all files within
+
+    read -p "Enter the apache user: " USER
+    read -p "Enter the apache group: " GROUP
+    echo "Creating rootFolder directory '$FOLDER' and its content"
+    mkdir $FOLDER
+
+    echo "- adding basic .htaccess file"
+	touch $FOLDER/.htaccess
+    less /etc/apache2/htaccess.tpl > $FOLDER/.htaccess
+
+    echo "- adding remove.sh file"
+    echo "if [[ $EUID -ne 0 ]]; then" >> $FOLDER/remove.sh
+    echo "   echo \"This script must be run as root\" " >> $FOLDER/remove.sh
+    echo "   exit 1" >> $FOLDER/remove.sh
+    echo "fi" >> $FOLDER/remove.sh
+    echo "read -p \"This will also delete permanently the following folder $FOLDER (CTRL+C to quit, Enter to proceed)  \" x" >> $FOLDER/remove.sh
+    echo "rm /etc/apache2/vhosts/$DOMAIN.*" >> $FOLDER/remove.sh
+    if [[ "$HTTPS" == true ]]; then
+        echo "rm /etc/apache2/ssl/$DOMAIN.*" >> $FOLDER/remove.sh
+        echo "rm /etc/apache2/sslvhosts/$DOMAIN.*" >> $FOLDER/remove.sh
+    fi
+
+    echo "rm -rf $FOLDER" >> $FOLDER/remove.sh
+    sudo chown $USER:$GROUP $FOLDER/remove.sh
+    sudo chmod +x $FOLDER/remove.sh
+    
+	echo "- creating basic index.html"
+	sudo sed -e "s;%DOMAIN%;$DOMAIN;g" -e "s;%MODE%;$MODE;g"  /etc/apache2/index.tpl > $FOLDER/index.html
+	sudo chown -R $USER:$GROUP $FOLDER
+	
+    echo "directory $FOLDER and content created successfully"
+fi
+
+
+echo "if afterward You want to create a subdomain eg: xxx.$DOMAIN -> $DOMAIN/xxx"
+echo "1) add 'ServerAlias xxx.$DOMAIN' in the $DOMAIN.conf"
 echo "2) add the following rewrite rule to the created .htaccess"
 echo "	RewriteEngine on"
-echo "	RewriteCond %{HTTP_HOST} ^xxx.$domain"
-echo "	RewriteRule ^(.*)$ http://$domain/xxx/\$1 [P,L]"
+echo "	RewriteCond %{HTTP_HOST} ^xxx.$DOMAIN"
+echo "	RewriteRule ^(.*)$ http://$DOMAIN/xxx/\$1 [P,L]"
 echo ""
-read -p "Choose
-- 1 for http only 
-- 2 for https only
-- 3 for both : (3 default) " mode
 
-mode=${mode:-3}
 
-http=true
+## start
 
-https=true
 
-if [[ "$mode" == 1 ]]; then
-	https=false
-fi
-if [[ "$mode" == 2 ]]; then
-	http=false
-fi
 
-if [[ "$https" == true ]]; then
+if [[ "$HTTPS" == true ]]; then
 	cd /etc/apache2/ssl
-	openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout $domain.key -out $domain.crt
-	openssl req -new -key $domain.key -out $domain.csr
-	openssl x509 -req -days 365 -in $domain.csr -signkey $domain.key -out $domain.crt
-	cp $domain.key $domain.tmp
-	openssl rsa -in $domain.tmp -out $domain.key
-	rm $domain.tmp
+	openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout $DOMAIN.key -out $DOMAIN.crt
+	openssl req -new -key $DOMAIN.key -out $DOMAIN.csr
+	openssl x509 -req -days 365 -in $DOMAIN.csr -signkey $DOMAIN.key -out $DOMAIN.crt
+	cp $DOMAIN.key $DOMAIN.tmp
+	openssl rsa -in $DOMAIN.tmp -out $DOMAIN.key
+	rm $DOMAIN.tmp
 	cd -
 fi
 
 
-# create the folder if does not exists
-#
-if [[ -d $folder ]]
-then
-    echo "Directory $folder already exists"
-else
-	mkdir $folder
-	touch $folder/.htaccess
-    echo "if [[ $EUID -ne 0 ]]; then" >> $folder/remove.sh
-    echo "   echo \"This script must be run as root\" " >> $folder/remove.sh
-    echo "   exit 1" >> $folder/remove.sh
-    echo "fi" >> $folder/remove.sh
-
-    echo "read -p \"This will also delete permanently the following folder $folder (CTRL+C to quit, Enter to proceed)  \" x" >> $folder/remove.sh
-    echo "rm /etc/apache2/ssl/$domain.*" >> $folder/remove.sh
-    echo "rm /etc/apache2/vhosts/$domain.*" >> $folder/remove.sh
-    echo "rm /etc/apache2/sslvhosts/$domain.*" >> $folder/remove.sh
-    echo "rm -rf $folder" >> $folder/remove.sh
-    
-	less /etc/apache2/htaccess.tpl > $folder/.htaccess
-	sudo sed -e "s;%DOMAIN%;$domain;g" -e "s;%MODE%;$mode;g"  /etc/apache2/index.tpl > $folder/index.html
-	sudo chown -R $user:$group $folder
-	echo "Directory $folder created successfully"
-fi
-
-# basic permissions
-#
-find $folder -type f | xargs chmod 644
-find $folder -type d | xargs chmod 755
 
 
-if [[ -f $folder/build.sh ]]; then
-	chmod +x $folder/build.sh
-fi
-if [[ -f $folder/vars.json ]]; then
-	chmod +x $folder/vars.json
-fi
 
-sslvhostFile=/etc/apache2/sslvhosts/$domain.conf
-vhostFile=/etc/apache2/vhosts/$domain.conf
+sslvhostFile=/etc/apache2/sslvhosts/$DOMAIN.conf
+vhostFile=/etc/apache2/vhosts/$DOMAIN.conf
 
 
-if [[ "$https" == true ]]; then
+if [[ "$HTTPS" == true ]]; then
 	echo "Creating https VirtualHost file ... "
-	# if missing, replace in tpl and write it
-	# if [[ ! -f $sslvhostFile ]] ; then
-		sudo sed -e "s;%FOLDER%;$folder;g" -e "s;%DOMAIN%;$domain;g" -e "s;%ADMINEMAIL%;$adminEmail;g" -e "s;%DOMAIN_CRT%;/etc/apache2/ssl/$domain.crt;g" -e "s;%DOMAIN_KEY%;/etc/apache2/ssl/$domain.key;g" /etc/apache2/sslvhosts/conf.tpl > $sslvhostFile
-		sudo subl $sslvhostFile
-	#fi
+	sudo sed -e "s;%FOLDER%;$FOLDER;g" -e "s;%DOMAIN%;$DOMAIN;g" -e "s;%DOMAIN_CRT%;/etc/apache2/ssl/$DOMAIN.crt;g" -e "s;%DOMAIN_KEY%;/etc/apache2/ssl/$DOMAIN.key;g" /etc/apache2/sslvhosts/conf.tpl > $sslvhostFile
 	echo "done"
 fi
 
-if [[ "$http" == true ]]; then
+if [[ "$HTTP" == true ]]; then
 	echo "Creating http VirtualHost file... "
-	#if [[ ! -f $vhostFile ]] ; then
-		sed -e "s;%FOLDER%;$folder;g" -e "s;%DOMAIN%;$domain;g" -e "s;%ADMINEMAIL%;$adminEmail;g" /etc/apache2/vhosts/conf.tpl > $vhostFile
-		sudo subl $vhostFile
-	#fi
+	sed -e "s;%FOLDER%;$FOLDER;g" -e "s;%DOMAIN%;$DOMAIN;g" /etc/apache2/vhosts/conf.tpl > $vhostFile
 	echo "done"
 fi
 
 # in case the needed entry is not found on /etc/hosts 
 #
-inhost=$(less /etc/hosts | grep -c "127.0.0.1 www.$domain")
+inhost=$(less /etc/hosts | grep -c "127.0.0.1 www.$DOMAIN")
 if [ $inhost -lt 1 ]; then
 	echo 'adding line to /etc/hosts ... '
-	sudo echo "127.0.0.1 www.$domain $domain" >> /etc/hosts
+	sudo echo "127.0.0.1 www.$DOMAIN $DOMAIN" >> /etc/hosts
 	echo "done"
 fi
 
@@ -182,10 +233,10 @@ sleep 5
 
 # open
 # 
-echo "...opening $domain"
-if [[ "$https" == true ]]; then
-	/usr/bin/open -a "/Applications/Google Chrome.app"  "https://www.$domain"
+echo "...opening $DOMAIN"
+if [[ "$HTTPS" == true ]]; then
+	/usr/bin/open -a "/Applications/Google Chrome.app"  "https://www.$DOMAIN"
 fi
-if [[ "$http" == true ]]; then
-	/usr/bin/open -a "/Applications/Google Chrome.app"  "http://www.$domain"
+if [[ "$HTTP" == true ]]; then
+	/usr/bin/open -a "/Applications/Google Chrome.app"  "http://www.$DOMAIN"
 fi

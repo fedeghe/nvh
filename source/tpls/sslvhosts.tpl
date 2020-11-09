@@ -1,5 +1,5 @@
 <VirtualHost *:443>
-    ServerAdmin %ADMINEMAIL%
+    # ServerAdmin your_email@if_needed.what
     DocumentRoot "%FOLDER%"
     ServerName %DOMAIN%
     ServerAlias www.%DOMAIN%
