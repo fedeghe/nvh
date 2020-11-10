@@ -1,7 +1,7 @@
 #!/bin/sh
 #
 # Author: maltaV('PACKAGE.author')
-# Version : maltaV('PACKAGE.version$')
+# Version : maltaV('PACKAGE.version')
 #
 
 version=maltaV('PACKAGE.version')
