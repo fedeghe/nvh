@@ -6,7 +6,6 @@
 
 version=maltaV('PACKAGE.version')
 
-
 echo ""
 echo "                  888"     
 echo "888 8e  Y8b Y888P 888 ee  "
@@ -15,9 +14,6 @@ echo "888 888   Y8b Y   888 888 "
 echo "888 888    Y8P    888 888 "
 echo "                          v $version"
 echo ""
-
-
-
 
 # stop if not root
 #
@@ -40,7 +36,6 @@ TYPELABEL="Choose
 - 2 for https only
 - 3 for both (1 default): "
 
-
 echo "Checking dependencies"
 
 if [ -f "$HTTPD" ]; then
@@ -50,27 +45,20 @@ else
     exit 1
 fi
 
-
 if [ $HASOPENSSL -lt 1 ]; then
     echo "- openssl seem to be missing, you will nto be able to create ssl VirtualHost"
 fi
 
-
-
-
-
 # in case do not exists, create those two folders
 # which will contain all `VirtualHost` tags
-# 
 #
 mkdir -p /etc/apache2/vhosts
 mkdir -p /etc/apache2/sslvhosts
 
-
 # be sure that the two above containing folders are included in the httpd.conf
 # will be used as containers for the incoming VirtualHost directives file containers that nvh will create 
-# now and in all following viratul host
-
+# now and in all virtual hosts created with nvh
+#
 if [ $HASAPACHEINCLUDE -lt 1 ]; then
     echo 'Adding Include for vhosts and sslvhosts to /etc/apache2/httpd.conf ... '
     sudo echo "Include /etc/apache2/vhosts/*.conf" >> /etc/apache2/httpd.conf
@@ -78,8 +66,8 @@ if [ $HASAPACHEINCLUDE -lt 1 ]; then
     echo "done"
 fi
 
-
-# tempaltes definition
+# Templates definition
+# for all relevant files to be created for a virtual host
 #
 # vhost VirtualHost directive
 cat > /etc/apache2/vhosts/conf.tpl << EOF
@@ -90,7 +78,7 @@ cat > /etc/apache2/sslvhosts/conf.tpl << EOF
 maltaF('tpls/sslvhosts.tpl')
 EOF
 # basic default htaccess file in the virtual host root folder
-# (created only if the forlder does not exists yet)
+# (created only if the folder does not exists yet)
 cat > /etc/apache2/htaccess.tpl << EOF
 maltaF('tpls/htaccess.tpl')
 EOF
@@ -103,8 +91,10 @@ EOF
 
 
 ##
-# Ask the user some informations
+# Ask the user some needed informations for the virtual host creation
+#
 
+# if openssl is available ask wheter to create unsecure, ssl or both
 if [ $HASOPENSSL -gt 0 ]; then
     read -p "$TYPELABEL" mode
     MODE=${mode:-1}
@@ -126,6 +116,9 @@ if [[ "$MODE" == 2 ]]; then
 	HTTP=false
 fi
 
+# if the folder already exists do basically nothing but
+# set up correctly permissions on files and folders
+#
 if [[ -d $FOLDER ]]; then
     echo "Directory $FOLDER already exists"
 
@@ -134,7 +127,7 @@ if [[ -d $FOLDER ]]; then
     find $FOLDER -type d | xargs chmod 755
 
 else
-    # if the rootFolder does not exists, I need to know the `user` and `group` 
+    # if the rootFolder does not exists, nvh needs to know the `user` and `group` 
     # so to be able to set the ownership of the folder and all files within
 
     read -p "Enter the apache user: " USER
@@ -169,12 +162,15 @@ else
     echo "directory $FOLDER and content created successfully"
 fi
 
-echo "if afterward You want to create a subdomain eg: xxx.$DOMAIN -> $DOMAIN/xxx"
+echo ""
+echo "----------------------------------------------------------------"
+echo "If afterwards You want to create a subdomain eg: xxx.$DOMAIN -> $DOMAIN/xxx"
 echo "1) add 'ServerAlias xxx.$DOMAIN' in the $DOMAIN.conf"
 echo "2) add the following rewrite rule to the created .htaccess"
 echo "	RewriteEngine on"
 echo "	RewriteCond %{HTTP_HOST} ^xxx.$DOMAIN"
 echo "	RewriteRule ^(.*)$ http://$DOMAIN/xxx/\$1 [P,L]"
+echo "----------------------------------------------------------------"
 echo ""
 
 ## ssl  ?
@@ -221,7 +217,7 @@ echo "Apache restarts:"
 sudo apachectl restart
 sleep 5
 
-# open
+# open in browser
 # 
 echo "...opening $DOMAIN"
 if [[ "$HTTPS" == true ]]; then
